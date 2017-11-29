@@ -101,7 +101,7 @@ class AST(object):
     #return code    
     def __codegen__(self):        
         for child in self.children: 
-            print(str(child.__codegen__()))
+            child.__generateCode__();
         
 class Compound(AST):
     """Represents a 'BEGIN ... END' block"""
@@ -172,8 +172,8 @@ class Assign(AST):
     def __generateCode__(self):
         self.children[0].generateCode();
         self.children[1].generateRValueCode();
-        self.children[0].address.setTemporary(self.children[1].address.getTemporary());
-        ARQSAIDA + self.children[0].address.getName() + " = " + self.children[1].address.getName() + endl;    
+        self.children[0].address.temporary = (self.children[1].address.temporary);
+        ARQSAIDA + self.children[0].lexema + " = " + self.children[1].address.name + endl;  #  
 
 class If(AST):
     def __init__(self, exp, c_true, c_false, father):
@@ -486,7 +486,7 @@ class RelOp(BinOp):
         ARQSAIDA + "if " +  test +  " goto " +  self.true_label.getName() + endl;
         ARQSAIDA + "goto " + self.false_label.getName() + endl;
         
-    def __generateRBranchCode__(self):
+    def __generateRValue__(self):
 
 
 class Id(AST):
