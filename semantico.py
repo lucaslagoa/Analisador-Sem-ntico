@@ -1,6 +1,10 @@
 #!/usr/bin/env python2.7.12
 #-*- coding: utf-8 -*-
 
+'''
+RVALUECODE do relop e LogicalOp
+
+'''
 import unicodedata
 import re
 from analex import *
@@ -9,7 +13,7 @@ import hashlib
 object1 = Lexico()
 
 object1.run()
-
+arq = open('saida.txt','w')
 
 listaTokens = object1.listaTokens['tokens']
 listaLexema = object1.listaTokens['lexema']
@@ -25,41 +29,43 @@ dicionario = {}
 #id, num, label e temp
 
 class Operand():
-    def __init__(self,temporary,tableEntry):
-        self.name = name;
-        self.temporary;
-        self.tableEntry;
-        self.tipo = tipo;
-        self.live = live;
-        self.next_use = next_use;
-        Operand();
+    def __init__(self):
+        self.name = None;
+        self.temporary=None;
+        self.tableEntry=None;
+        self.tipo = None;
+        self.live = None;
+        self.next_use = None;
 
+cont = 0;
 class Temp():
     def __init__(self):
-        self.n = n;
-        self.name = name;
-        Temp();
-
+        global cont;
+        self.name = "t" + str(cont);
+        cont = cont + 1;
+cont3 = 0
 class Label(Operand):
-    def __init__(self):
-        self.n = n;
-        self.name = name;
-        Label();
 
+    def __init__(self):
+        global cont3;
+        self.name = "L"+str(cont3);
+        cont3= cont3+1;
+
+'''
 class Tac():
     def __init__(self):
-        self.number = number;
-        self.name = name;
-        self.formato = formato;
+        self.number = None;
+        self.name = None;
+        self.formato = None;
         #Operand* src1;
         #Operand* src1;
         #Label* label;
         #Label* destLabel;
-        Tac();
-        Tac(formato,dest,src1,src2);
-        Tac(formato,destGoto,src1,src2);
-        #setLabel(label);
 
+        #Tac(formato,dest,src1,src2);
+        #Tac(formato,destGoto,src1,src2);
+        #setLabel(label);
+'''
 class AST(object):
     def __init__(self, nome, father):
          self.nome = nome;
@@ -68,41 +74,41 @@ class AST(object):
          self.tipo = None  #inteiro ou ponto flutuante
          self.value = None
          self.hasParenthesis = None
-         self.address = None 
+         self.address = None
          self.next = None
-         
+
     def __str__(self, level=0):
         ret = "\t"*level+ repr(self) +"\n"
         for child in self.children:
-            if (child != None):                
+            if (child != None):
                 ret += child.__str__(level+1) #level+1
                 #print(child.__str__())
         return ret
-    
+
     def __repr__(self):
         return self.nome
-    
+
     def __evaluate__(self):
         print('Avaliando nó ' + str(self.nome))
         for child in self.children:
-            if (child != None): 
+            if (child != None):
                 x = child.__evaluate__()
 
 
-        
-    def __checkTypes__(self):  
+
+    def __checkTypes__(self):
         for child in self.children:
-            if (child != None): 
-                child.__checkTypes__()        
-        
+            if (child != None):
+                child.__checkTypes__()
+
     #code = " ";
-    #for child in self.children: 
-            #code += child.__codegen__();        
-    #return code    
-    def __codegen__(self):        
-        for child in self.children: 
-            child.__generateCode__();
-        
+    #for child in self.children:
+            #code += child.__codegen__();
+    #return code
+    def generateCode(self):
+        for child in self.children:
+            child.generateCode();
+
 class Compound(AST):
     """Represents a 'BEGIN ... END' block"""
     def __init__(self,father):
@@ -111,11 +117,11 @@ class Compound(AST):
         #self.children = []
     def __repr__(self):
         return self.nome
-    
+
     def __codegen__(self):
         code = " ";
-        for child in self.children: 
-            code += child.__codegen__();        
+        for child in self.children:
+            code += child.__codegen__();
         return "{" + code + "}"
 
 class Assign(AST):
@@ -128,15 +134,15 @@ class Assign(AST):
         self.token = self.op = op
         self.right = right
         self.isDecl = None
-    
+
     def __repr__(self):
         return self.nome
-    
+
     def __setIsDecl__(self, isDecl):
         self.isDecl = isDecl
-    
+
     def __evaluate__(self):
-        print('Avaliando atribuição.')        
+        print('Avaliando atribuição.')
         id_node = self.children[0]
         lex = id_node.lexema
         tipo = dicionario[lex][0]
@@ -146,34 +152,34 @@ class Assign(AST):
         	dict3[lex] = (tipo, expr_value)
         	dicionario.update(dict3)
 
-           
+
     def __codegen__(self):
         if (self.isDecl):
             id_node = self.children[0]
             te = tabSimbolos.getEntry(id_node.token.lexema)
-            return typeNames[te.tipo] + " " + self.children[0].__codegen__() + " = " + self.children[1].__codegen__() + ";" 
+            return typeNames[te.tipo] + " " + self.children[0].__codegen__() + " = " + self.children[1].__codegen__() + ";"
         else:
-            return self.children[0].__codegen__() + " = " + self.children[1].__codegen__() + ";" 
-   
-    def __checkTypes__(self): 
+            return self.children[0].__codegen__() + " = " + self.children[1].__codegen__() + ";"
+
+    def __checkTypes__(self):
         if(self.children[0] != None and self.children[1] != None):
-            if(self.children[0].__checkTypes__() == self.children[1].__checkTypes__()):            
+            if(self.children[0].__checkTypes__() == self.children[1].__checkTypes__()):
                 print('Tipos compatíveis.')
                 return True
             elif (self.children[0].__checkTypes__() < self.children[1].__checkTypes__()):
                 print('Tipos incompatíveis. Será realizada uma conversão permitida pela hierarquia de tipos.')
                 self.children[0].__convertTo__(self.children[1].tipo)
                 return True
-            else: 
+            else:
                 print('Tipos incompatíveis. Será realizada uma conversão permitida pela hierarquia de tipos.')
                 self.children[1].__convertTo__(self.children[0].tipo)
                 return True
 
-    def __generateCode__(self):
+    def generateCode(self):
         self.children[0].generateCode();
         self.children[1].generateRValueCode();
         self.children[0].address.temporary = (self.children[1].address.temporary);
-        ARQSAIDA + self.children[0].lexema + " = " + self.children[1].address.name + endl;  #  
+        arq.write(self.children[0].lexema + " = " + self.children[1].address.name + "\n");  #
 
 class If(AST):
     def __init__(self, exp, c_true, c_false, father):
@@ -182,13 +188,13 @@ class If(AST):
         self.children.append(exp)
         self.children.append(c_true)
         self.children.append(c_false)
-        self.exp = exp;         
-        self.c_true = c_true; 
-        self.c_false = c_false; 
-    
+        self.exp = exp;
+        self.c_true = c_true;
+        self.c_false = c_false;
+
     def __init__(self,nome):
     	AST.__init__(self, nome, None)
-    	
+
     def __repr__(self):
         return self.nome
 
@@ -199,36 +205,37 @@ class If(AST):
             self.children[1].__evaluate__()
         else:
         	if(len(self.children) is not 2):
-        		self.children[2].__evaluate__()  
+        		self.children[2].__evaluate__()
 
-    def __generateCode__(self):
+    def generateCode(self):
         self.next = Label();
-        if (self.children.size() == 3){ #Tem o else
+        if (len(self.children) == 3): #Tem o else
             self.children[0].true_label = Label();
             self.children[0].false_label = Label();
             self.children[0].next = self.children[1].next = self.next;
             self.children[0].generateBranchCode(); #Gera código da expressão
             if (self.children[0].address != None):
-                ARQSAIDA + "if " + self.children[0].address.getName() + " == 0 goto " + self.children[0].false_label.getName() + endl;
-            else
-                ARQSAIDA + self.children[0].true_label.getName() + ":";
+                arq.write("if " + self.children[0].address.name + " == 0 goto " + self.children[0].false_label.name + "\n");
+            else:
+
+                arq.write( self.children[0].true_label.name + ":");
             self.children[1].generateCode();
-            ARQSAIDA + "goto " + self.next.getName() + endl;
-            ARQSAIDA + self.children[0].false_label.getName() + ":";
+            arq.write( "goto " + self.next.name + "\n");
+            arq.write(self.children[0].false_label.name + ":");
             self.children[2].generateCode();
-        }
-        else{
+
+        else:
             self.children[0].true_label = Label();
             self.children[0].false_label = self.children[1].next = self.next;
             self.children[0].generateBranchCode(); #Gera código da expressão
             if (self.children[0].address != None):
-                ARQSAIDA + "if " + self.children[0].address.getName() + " == 0 goto " + self.children[0].false_label.getName() + endl;
+                arq.write("if " + self.children[0].address.name + " == 0 goto " + self.children[0].false_label.name + "\n");
             else:
-                ARQSAIDA + self.children[0].true_label.getName() + ":";
+
+                arq.write(self.children[0].true_label.name + ":");
             self.children[1].generateCode();
-        }
-        ARQSAIDA + self.next.getName() + ":";
-           
+
+        arq.write(self.next.name + ":");
 
 class While(AST):
     def __init__(self, exp, commands, father):
@@ -237,7 +244,7 @@ class While(AST):
         self.children.append(exp)
         self.children.append(commands)
         self.exp = exp;
-        self.commands = commands; 
+        self.commands = commands;
     def __init__(self,nome):
     	AST.__init__(self, nome, None)
 
@@ -251,22 +258,22 @@ class While(AST):
         	self.children[1].__evaluate__()
         	valor = self.children[0].__evaluate__()
 
-    def __generateCode__(self):
+    def generateCode(self):
         self.begin = Label();
         self.children[0].true_label = Label();
         self.children[0].false_label = self.next = Label();
         self.children[1].next = self.begin;
-        ARQSAIDA << self.begin.getName() << ":";
+        arq.write(self.begin.name + ":");
         self.children[0].generateBranchCode() ; #Gera código para a expressão
-        if (self.children[0].address != None)
-            ARQSAIDA << "if " << self.children[0].address.getName() << " == 0 goto " << self.children[0].false_label.getName() << endl;
-        else
-            ARQSAIDA << self.children[0].true_label.getName() << ":";
+        if (self.children[0].address != None):
+            arq.write("if " + self.children[0].address.name + " == 0 goto " + self.children[0].false_label.name + "\n");
+        else:
+            arq.write(self.children[0].true_label.name + ":");
         self.children[1].generateCode() ; #Gera código para a lista de comandos
-        ARQSAIDA << "goto " << self.begin.getName() << endl;
-        ARQSAIDA << self.next.getName() << ":";
+        arq.write("goto " + self.begin.name + "\n");
+        arq.write(self.next.name + ":");
 
-        
+
 class Read(AST):
     def __init__(self, id_, father):
         AST.__init__(self,'Read', father)
@@ -274,10 +281,10 @@ class Read(AST):
         self.children.append(id_)
         self.id = id_;
     def __init__(self,nome):
-    	AST.__init__(self, nome, None)    
+    	AST.__init__(self, nome, None)
     def __repr__(self):
         return self.nome
-    
+
 class Print(AST):
     def __init__(self, exp, father):
         AST.__init__(self,'Print', father)
@@ -285,7 +292,7 @@ class Print(AST):
         self.children.append(exp)
         self.exp = exp;
     def __init__(self,nome):
-		AST.__init__(self, nome, None)	
+		AST.__init__(self, nome, None)
 
     def __repr__(self):
         return self.nome
@@ -296,37 +303,37 @@ class BinOp(AST):
         self.children.append(left)
         self.children.append(right)
         self.left = left
-        #self.token = 
+        #self.token =
         self.op = op
         self.right = right
-        
+
     def __repr__(self):
-        #self.left.repr();    
+        #self.left.repr();
         return self.op
-    
+
     def __evaluate__(self):
         print('Avaliando nó ' + str(self.nome))
         for child in self.children:
-            if (child != None): 
-                return child.__evaluate__()    
+            if (child != None):
+                return child.__evaluate__()
 
-    def __checkTypes__(self): 
+    def __checkTypes__(self):
         if(self.children[0] != None and self.children[1] != None):
-            if(self.children[0].__checkTypes__() == self.children[1].__checkTypes__()):            
+            if(self.children[0].__checkTypes__() == self.children[1].__checkTypes__()):
                 print('Tipos compatíveis.')
                 return True
             elif (self.children[0].__checkTypes__() < self.children[1].__checkTypes__()):
                 print('Tipos incompatíveis. Será realizada uma conversão permitida pela hierarquia de tipos.')
                 self.children[0].__convertTo__(self.children[1].tipo)
                 return True
-            else: 
+            else:
                 print('Tipos incompatíveis. Será realizada uma conversão permitida pela hierarquia de tipos.')
                 self.children[1].__convertTo__(self.children[0].tipo)
-                return True     
+                return True
 
     def __codegen__(self):
         return self.left.__codegen__() + self.op + self.right.__codegen__()
-        
+
 class LogicalOp(BinOp):
     def __init__(self, left, op, right, father):
         BinOp.__init__(self,'LogicalOp',left, op, right, father)
@@ -336,7 +343,7 @@ class LogicalOp(BinOp):
     	print('Avaliando LogicalOp.')
     	a = self.children[0].__evaluate__()
         b = self.children[1].__evaluate__()
-       
+
     	if(self.op == '&&'):
         	if(a is True and b is True):
         		c = True
@@ -351,40 +358,45 @@ class LogicalOp(BinOp):
         	else:
         		c = False
         		return c
-
-    def __generateBranchCode__(self):
-        if (self.op == "||"){
-                self.children[0].true_label = self.true_label;
-                self.children[0].false_label = fLabel();
-                self.children[1].true_label = self.true_label;
-                self.children[1].false_label = self.false_label;
-                self.children[0].generateBranchCode();
-                if (self.children[0].address != None)
-                   ARQSAIDA + "if " + self.children[0].address.getName() + " != 0 goto " + self.children[0].true_label.getName() + endl;
-                else
-                    ARQSAIDA + self.children[0].false_label.getName() + ":";
+    def generateBranchCode(self):
+        if (self.op == "||"):
+            self.children[0].true_label = self.true_label;
+            self.children[0].false_label = fLabel();
+            self.children[1].true_label = self.true_label;
+            self.children[1].false_label = self.false_label;
+            self.children[0].generateBranchCode();
+            if (self.children[0].address != None):
+                arq.write( "if " + self.children[0].address.name + " != 0 goto " + self.children[0].true_label.name + "\n");
+            else:
+                arq.write( self.children[0].false_label.name + ":");
             self.children[1].generateBranchCode();
-            if (self.children[1].address != None){
-                ARQSAIDA + "if " + self.children[1].address.getName() + " == 0 goto " + self.children[1].false_label.getName() + endl;
-                ARQSAIDA + "goto " + self.children[1].true_label.getName() + endl;
-            }
-        }
-        else if (self.op == "&&"){
+            if (self.children[1].address != None):
+                arq.write( "if " + self.children[1].address.name + " == 0 goto " + self.children[1].false_label.name + "\n");
+                arq.write( "goto " + self.children[1].true_label.name + "\n");
+        elif (self.op == "&&"):
             self.children[0].true_label = Label();
             self.children[0].false_label = self.false_label;
             self.children[1].true_label = self.true_label;
             self.children[1].false_label = self.false_label;
-            self.children[0].generateBranchCode() ;
-            if (self.children[0].address != None) #Verifica se o nó filho é um Id, Num ou ArithOp verificando se ele possui endereço
-                ARQSAIDA + "if " + self.children[0].address.getName() + " == 0 goto " + self.children[0].false_label.getName() + endl;
-            else
-                ARQSAIDA + self.children[0].true_label.getName() + ":";
+            self.children[0].generateBranchCode();
+            if (self.children[0].address != None): #Verifica se o nó filho é um Id, Num ou ArithOp verificando se ele possui endereço
+                 arq.write( "if " + self.children[0].address.name + " == 0 goto " + self.children[0].false_label.name + "\n");
+            else:
+                arq.write( self.children[0].true_label.name + ":");
             self.children[1].generateBranchCode() ;
-            if (self.children[1].address != None){
-                ARQSAIDA + "if " + self.children[1].address.getName() + " == 0 goto " + self.children[1].false_label.getName() + endl;
-                ARQSAIDA + "goto " + self.children[1].true_label.getName() + endl;
-            }
-        }    
+            if (self.children[1].address != None):
+                arq.write( "if " + self.children[1].address.name + " == 0 goto " + self.children[1].false_label.name + "\n");
+                arq.write( "goto " + self.children[1].true_label.name + "\n");
+
+    #nao sabes se está certo
+    def generateRValueCode(self):
+        self.children[0].generateRValueCode();
+        self.children[1].generateRValueCode();
+        temp = Temp();
+        self.address = Operand();
+        self.address.temporary = temp;
+        self.address.name = temp.name;
+        arq.write(temp.name + " = " + self.children[0].address.name + " " + self.op + " " + self.children[1].address.name + "\n");
 
 class ArithOp(BinOp):
     def __init__(self, left, op, right, father):
@@ -410,23 +422,23 @@ class ArithOp(BinOp):
     def __codegen__(self):
         return self.left.__codegen__() + self.op + self.right.__codegen__()
 
-    def __generateBranchCode__(self):
+    def generateBranchCode(self):
         self.children[0].generateBranchCode();
         self.children[1].generateBranchCode();
         temp = Temp();
         self.address = Operand();
         self.address.setTemporary(temp);
         self.address.setName(temp.name);
-        ARQSAIDA + temp.name + " = " + self.children[0].address.getName() + " " + self.op + " " + self.children[1].address.getName() + endl;
+        arq.write( temp.name + " = " + self.children[0].address.name + " " + self.op + " " + self.children[1].address.name + "\n");
 
-    def __generateRValueCode__(self):
-    	self.children.at(0).generateRValueCode();
-		self.children.at(1).generateRValueCode();
-		temp = Temp();
-		self.address = Operand();
-		self.address.setTemporary(temp);
-		self.address.setName(temp.name);
-		ARQSAIDA + temp.name + " = " + self.children[0].getAddress().getName() + " " + self.op + " " + self.children[1].getAddress().getName() + endl;
+    def generateRValueCode(self):
+        self.children[0].generateRValueCode();
+        self.children[1].generateRValueCode();
+        temp = Temp();
+        self.address = Operand();
+        self.address.temporary = temp;
+        self.address.name = temp.name;
+        arq.write(temp.name + " = " + self.children[0].address.name + " " + self.op + " " + self.children[1].address.name + "\n");
 
 class RelOp(BinOp):
     def __init__(self, left, op, right, father):
@@ -476,17 +488,24 @@ class RelOp(BinOp):
         		return c
         	else:
         		c = False
-        
+
         		return c
 
-   def __generateBranchCode__(self):
+    def generateBranchCode(self):
         self.children[0].generateBranchCode() ;
         self.children[1].generateBranchCode() ;
-        test = self.children[0].address.getName() + self.op + self.children[1].address.getName();
-        ARQSAIDA + "if " +  test +  " goto " +  self.true_label.getName() + endl;
-        ARQSAIDA + "goto " + self.false_label.getName() + endl;
-        
-    def __generateRValue__(self):
+        test = self.children[0].address.name + self.op + self.children[1].address.name;
+        arq.write("if " +  test +  " goto " +  self.true_label.name + "\n");
+        arq.write("goto " + self.false_label.name + "\n");
+    #nao sabemos se esta certo
+    def generateRValueCode(self):
+        self.children[0].generateRValueCode();
+        self.children[1].generateRValueCode();
+        temp = Temp();
+        self.address = Operand();
+        self.address.temporary = temp;
+        self.address.name = temp.name;
+        arq.write(temp.name + " = " + self.children[0].address.name + " " + self.op + " " + self.children[1].address.name + "\n");
 
 
 class Id(AST):
@@ -494,70 +513,67 @@ class Id(AST):
     def __init__(self,token,lexema,father):
         AST.__init__(self,'Id',father)
         print('Criando um nó do tipo Id.')
-        #self.children.append(token)        
-        self.token = token 
-        self.lexema = lexema       
-        #ref para entrada da tabela de símbolos 
-    
+        #self.children.append(token)
+        self.token = token
+        self.lexema = lexema
+        #ref para entrada da tabela de símbolos
+
     def __repr__(self):
         #return repr(self.token)
         return self.token
-    
+
     def __evaluate__(self):
         te = dicionario[self.lexema][1]
         if (te != None):
             return te
-        else: 
+        else:
             return 0;
 
-    def __generateCode__(self):
+    def generateCode(self):
         operand = Operand();
-        operand.setTableEntry(self.tableEntryRef);
-        operand.setName(self.tableEntryRef.getLexema());
+        operand.name =  self.lexema;
         self.address = operand;
 
-    def __generateRValueCode__(self):
+    def generateRValueCode(self):
         return self.generateCode();
 
-    def __generateBranchCode__(self):
+    def generateBranchCode(self):
         return self.generateCode();
-   
+
 
 class Num(AST):
     def __init__(self, token, father, tipo):
         AST.__init__(self,'Num', father)
         print('Criando um nó do tipo Num.')
-        #self.children.append(token)   
+        #self.children.append(token)
         self.token = token
-        self.value = token #em python, não precisamos nos preocupar com o tipo de value 
+        self.value = token #em python, não precisamos nos preocupar com o tipo de value
         self.tipo = tipo
-        
+
     def __repr__(self):
-        #return repr(self.token)        
+        #return repr(self.token)
         return self.value
-    
+
     def __evaluate__(self):
         return self.value
-    
-    def __checkTypes__(self):        
+
+    def __checkTypes__(self):
         return self.tipo
-    
+
     def __convertTo__(self, novotipo):
-        self.tipo = novotipo 
-        #testa se o tipo atual é float e o novo tipo é int para realizar um truncamento ou arrendondamento 
-    
-    def __codegen__(self):         
+        self.tipo = novotipo
+        #testa se o tipo atual é float e o novo tipo é int para realizar um truncamento ou arrendondamento
+
+    def __codegen__(self):
         return str(self.value)
-
-   def __generateCode__(self):
+    def generateCode(self):
         operand = Operand();
-        operand.setName(self.getLexema());
-        return self.address = operand;
-
-    def __generateRValueCode__(self):
+        operand.name = self.value;
+        self.address = operand;
+    def generateRValueCode(self):
         return self.generateCode();
 
-    def __generateBranchCode__(self):
+    def generateBranchCode(self):
         return self.generateCode();
 
 
@@ -573,7 +589,7 @@ def print_tree(current_node, indent="", last='updown'):
         down.append(up.pop())
 
     """ Printing of "up" branch. """
-    for child in up:     
+    for child in up:
         next_last = 'up' if up.index(child) is 0 else ''
         next_indent = '{0}{1}{2}'.format(indent, ' ' if 'up' in last else '│', " " * len(current_node.__repr__()))
         print_tree(child, indent=next_indent, last=next_last)
@@ -595,13 +611,13 @@ def print_tree(current_node, indent="", last='updown'):
         next_last = 'down' if down.index(child) is len(down) - 1 else ''
         next_indent = '{0}{1}{2}'.format(indent, ' ' if 'down' in last else '│', " " * len(current_node.__repr__()))
         print_tree(child, indent=next_indent, last=next_last)
-        
+
 
 def TabelaSimbolos():
 	tamanho = len(listaTokens)
 	tipo = []
 	dict2 = {}
-	for i in range(0,tamanho): 
+	for i in range(0,tamanho):
 		if((listaTokens[i] == 'INT' and listaTokens[i+1] == 'ID') or (listaTokens[i] == 'FLOAT' and listaTokens[i+1] == 'ID')):
 			tipo = []
 			tipo.append(listaTokens[i])
@@ -615,14 +631,14 @@ def TabelaSimbolos():
 						dicionario.update(dict2)
 					if(listaTokens[i+1] == 'ATTR' and listaTokens[i+2] == 'ID'):
 						dict2[listaLexema[i]] = (tipo, 0)
-						dicionario.update(dict2)	
+						dicionario.update(dict2)
 					if((listaTokens[i+1] == 'ATTR' and listaTokens[i+2] == 'INTEGER_CONST') or (listaTokens[i+1] == 'ATTR' or listaTokens[i+2] == 'FLOAT_CONST')):
 						dict2[listaLexema[i]] = (tipo, listaLexema[i+2])
 						dicionario.update(dict2)
 					if(listaTokens[i+1] == 'COMMA'):
 						dict2[listaLexema[i]] = (tipo, 0)
 						dicionario.update(dict2)
-								
+
 				i=i+1
 	print dicionario
 	return dicionario
@@ -634,7 +650,7 @@ def match(token):
 		listaTokens.pop(0)
 		listaLexema.pop(0)
 		listaLinhas.pop(0)
-	else: 
+	else:
 		print 'Erro sintatico'
 
 def Programa():
@@ -643,22 +659,22 @@ def Programa():
 	match('LBRACKET')
 	match('RBRACKET')
 	match('LBRACE')
-	lista = AST('decl_comando', None)    
+	lista = AST('decl_comando', None)
    	ast = Decl_Comando(lista);
 	match('RBRACE')
 	return ast
-				
-def Decl_Comando(lista):  
-    if (listaTokens[0] == 'INT' or listaTokens[0] == 'FLOAT'):   
-        lista1 = Declaracao(lista); 
-        return Decl_Comando(lista1);      
-    elif (listaTokens[0] == 'ID' or listaTokens[0] == 'IF' or listaTokens[0] == 'WHILE' or listaTokens[0] == 'PRINT' 
+
+def Decl_Comando(lista):
+    if (listaTokens[0] == 'INT' or listaTokens[0] == 'FLOAT'):
+        lista1 = Declaracao(lista);
+        return Decl_Comando(lista1);
+    elif (listaTokens[0] == 'ID' or listaTokens[0] == 'IF' or listaTokens[0] == 'WHILE' or listaTokens[0] == 'PRINT'
           or listaTokens[0] == 'READ' or listaTokens[0] == 'LBRACE'):
        	lista1 = Comando(lista);
        	return Decl_Comando(lista1);
     else:
     	return lista
-    	
+
 def Declaracao(lista):
 	global id_node
 	Tipo();
@@ -670,7 +686,7 @@ def Declaracao(lista):
 
 def Decl2(lista):
 	global id_node
-	
+
 	if(listaTokens[0] == 'COMMA'):
 		match('COMMA')
 		id_node = Id(listaTokens[0],listaLexema[0],None)
@@ -678,7 +694,7 @@ def Decl2(lista):
 		return Decl2(lista)
 
 	elif(listaTokens[0] == 'PCOMMA'):
-		match('PCOMMA')	
+		match('PCOMMA')
 		return lista
 
 	elif(listaTokens[0] == 'ATTR'):
@@ -686,10 +702,10 @@ def Decl2(lista):
 		expr_node = Expressao()
 		attr_node = Assign(id_node,'=',expr_node,None)
 		lista.children.append(attr_node)
-		return Decl2(lista); 
+		return Decl2(lista);
 
   	return lista;
-				
+
 
 def Tipo():
 	if(listaTokens[0] == 'INT'):
@@ -716,7 +732,7 @@ def Bloco(lista):
 	match('LBRACE')
 	bloco = AST('Bloco',None)
 	retorno = Decl_Comando(bloco)
-	match('RBRACE')	
+	match('RBRACE')
 	lista.children.append(retorno)
 
 	return lista
@@ -737,8 +753,8 @@ def ComandoRead(lista):
 	id_node = Id(listaTokens[0],listaLexema[0],None)
 	read_node.children.append(id_node)
 	match('ID')
-	match('PCOMMA')	
-	lista.children.append(read_node)		
+	match('PCOMMA')
+	lista.children.append(read_node)
 	return lista
 
 def ComandoSe(lista):
@@ -751,7 +767,7 @@ def ComandoSe(lista):
 	c_true = AST('C_TRUE',None)
 	retorno = Comando(c_true)
 	if_node.children.append(retorno)
-	ComandoSenao(if_node)	
+	ComandoSenao(if_node)
 	lista.children.append(if_node)
 	return lista
 
@@ -785,12 +801,12 @@ def ComandoPrint(lista):
 	expr = Expressao()
 	print_node.children.append(expr)
 	match('RBRACKET')
-	match('PCOMMA')	
-	lista.children.append(print_node)	
+	match('PCOMMA')
+	lista.children.append(print_node)
 	return lista
 
 
-def Expressao():      
+def Expressao():
     expr = Conjuncao();
     return ExpressaoOpc(expr);
 
@@ -799,9 +815,9 @@ def ExpressaoOpc(expr):
 		match('OR')
 		expr2 = Conjuncao()
 		or_node = LogicalOp(expr,'||',expr2,None)
-		expr2 = ExpressaoOpc(or_node)		
+		expr2 = ExpressaoOpc(or_node)
 		return expr2
-	else: 
+	else:
 		return expr
 
 def Conjuncao():
@@ -814,7 +830,7 @@ def ConjuncaoOpc(expr):
 		match('AND')
 		expr2= Igualdade()
 		and_node = LogicalOp(expr,'&&',expr2,None)
-		expr2 = ConjuncaoOpc(and_node)		
+		expr2 = ConjuncaoOpc(and_node)
 		return expr2
 	else :
 		return expr
@@ -836,14 +852,14 @@ def IgualdadeOpc(expr):
 		diferente_node = RelOp(expr,'!=',expr2,None)
 		return IgualdadeOpc(diferente_node)
 
-	else : 
+	else :
 		return expr
 
 def OpIgual():
 	if(listaTokens[0] == 'EQ'):
 		match('EQ')
 	elif(listaTokens[0] == 'NE'):
-		match('NE')	
+		match('NE')
 
 def Relacao():
 	expr = Adicao()
@@ -870,18 +886,18 @@ def RelacaoOpc(expr):
 		expr2 = Adicao()
 		maiorigual_node = RelOp(expr,'>=',expr2,None)
 		return RelacaoOpc(maiorigual_node)
-	else : 
-		return expr	
+	else :
+		return expr
 
-	
+
 
 def OpRel():
 	if(listaTokens[0] == 'LT' ):
 		match('LT')
 	elif(listaTokens[0] == 'LE') :
-		match('LE')		
+		match('LE')
 	elif(listaTokens[0] == 'GT'):
-		match('GT')		
+		match('GT')
 	elif(listaTokens[0] == 'GE'):
 		match('GE')
 
@@ -902,7 +918,7 @@ def AdicaoOpc(expr):
 		minus_node = ArithOp(expr,'-',expr2,None)
 		return AdicaoOpc(minus_node)
 
-	else: 
+	else:
 		return expr
 
 def OpAdicao():
@@ -926,15 +942,15 @@ def TermoOpc(expr):
 		OpMult()
 		expr2 = Fator()
 		div_node = ArithOp(expr,'/',expr2,None)
-		return TermoOpc(div_node)	
-	else: 
-		return expr	
-	 
+		return TermoOpc(div_node)
+	else:
+		return expr
+
 def OpMult():
 	if(listaTokens[0] == 'MULT'):
 		match('MULT')
 	elif(listaTokens[0] == 'DIV'):
-		match('DIV')	 
+		match('DIV')
 
 def Fator():
 	if(listaTokens[0] == 'ID'):
@@ -952,5 +968,5 @@ def Fator():
 	elif(listaTokens[0] == 'LBRACKET'):
 		match('LBRACKET')
 		expr = Expressao()
-		match('RBRACKET')	
-		return expr	
+		match('RBRACKET')
+		return expr
