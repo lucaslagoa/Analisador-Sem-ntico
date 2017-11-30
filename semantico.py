@@ -361,7 +361,7 @@ class LogicalOp(BinOp):
     def generateBranchCode(self):
         if (self.op == "||"):
             self.children[0].true_label = self.true_label;
-            self.children[0].false_label = fLabel();
+            self.children[0].false_label = Label();
             self.children[1].true_label = self.true_label;
             self.children[1].false_label = self.false_label;
             self.children[0].generateBranchCode();
@@ -388,15 +388,41 @@ class LogicalOp(BinOp):
                 arq.write( "if " + self.children[1].address.name + " == 0 goto " + self.children[1].false_label.name + "\n");
                 arq.write( "goto " + self.children[1].true_label.name + "\n");
 
-    #nao sabes se está certo
     def generateRValueCode(self):
-        self.children[0].generateRValueCode();
-        self.children[1].generateRValueCode();
-        temp = Temp();
-        self.address = Operand();
-        self.address.temporary = temp;
-        self.address.name = temp.name;
-        arq.write(temp.name + " = " + self.children[0].address.name + " " + self.op + " " + self.children[1].address.name + "\n");
+        self.true_label = Label()
+        self.false_label = Label()
+        self.next = Label()
+        self.address = Operand()
+        if(self.op == "||"):
+            self.children[0].generateRValueCode()
+            self.children[1].generateRValueCode()
+            teste = self.children[0].address.name + " " + "!= 0"
+            teste1 = self.children[1].address.name + " " + "!= 0"
+            temp = Temp()
+            
+            arq.write("if " + teste + " goto " + self.true_label.name + "\n")
+            
+            arq.write("if " + teste1 + " goto " + self.true_label.name + "\n")
+            arq.write(temp.name+"=0\n"+" goto "+self.next.name+"\n");
+            arq.write(self.true_label.name+":"+temp.name+"=1\n");
+            self.address.temporary = temp
+            self.address.name = temp.name
+            arq.write(self.next.name+":")
+        elif(self.op == "&&"):
+            self.children[0].generateRValueCode()
+            self.children[1].generateRValueCode()
+            teste = self.children[0].address.name + " " + "== 0"
+            teste1 = self.children[1].address.name + " " + "== 0"
+            temp = Temp()
+            
+            arq.write("if " + teste + " goto " + self.false_label.name + "\n")
+            
+            arq.write("if " + teste1 + " goto " + self.false_label.name + "\n")
+            arq.write(temp.name+"= 1\n"+" goto "+self.next.name+"\n");
+            arq.write(self.false_label.name+":"+temp.name+"=0\n");
+            self.address.temporary = temp
+            self.address.name = temp.name
+            arq.write(self.next.name+":") 
 
 class ArithOp(BinOp):
     def __init__(self, left, op, right, father):
@@ -427,8 +453,8 @@ class ArithOp(BinOp):
         self.children[1].generateBranchCode();
         temp = Temp();
         self.address = Operand();
-        self.address.setTemporary(temp);
-        self.address.setName(temp.name);
+        self.address.temporary = temp;
+        self.address.name = temp.name;
         arq.write( temp.name + " = " + self.children[0].address.name + " " + self.op + " " + self.children[1].address.name + "\n");
 
     def generateRValueCode(self):
@@ -498,14 +524,21 @@ class RelOp(BinOp):
         arq.write("if " +  test +  " goto " +  self.true_label.name + "\n");
         arq.write("goto " + self.false_label.name + "\n");
     #nao sabemos se esta certo
+    
     def generateRValueCode(self):
-        self.children[0].generateRValueCode();
-        self.children[1].generateRValueCode();
-        temp = Temp();
-        self.address = Operand();
+        self.true_label = Label()
+        self.false_label = Label()
+        self.next = Label()
+        self.address = Operand()
+        temp = Temp()
+        self.children[0].generateRValueCode()
+        self.children[1].generateRValueCode()
+        arq.write("if "+self.children[0].address.name + self.op + self.children[1].address.name +" goto "+ self.true_label.name+"\n");
+        arq.write(temp.name+ "= 0\n"+" goto "+self.next.name+"\n")
+        arq.write(self.true_label.name+":"+temp.name+"=1\n")
+        arq.write(self.next.name +":")
         self.address.temporary = temp;
         self.address.name = temp.name;
-        arq.write(temp.name + " = " + self.children[0].address.name + " " + self.op + " " + self.children[1].address.name + "\n");
 
 
 class Id(AST):

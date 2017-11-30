@@ -1,9 +1,9 @@
-t0 = 3 * 5
-t1 = 2 + t0
-a = t1
-b = 0
-if a>b goto L1
-goto L0
-L1:t2 = 10 + 2
-b = t2
-L0:
+a = 1
+b = 2
+c = 3
+t1 = a + c
+if b<t1 goto L0
+t0= 0
+ goto L2
+L0:t0=1
+L2:a = t0
