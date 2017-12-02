@@ -1,9 +1,0 @@
-a = 1
-b = 2
-c = 3
-t1 = a + c
-if b<t1 goto L0
-t0= 0
- goto L2
-L0:t0=1
-L2:a = t0

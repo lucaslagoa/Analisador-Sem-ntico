@@ -1,5 +1,7 @@
 int main()
 {
-  int a = 1, b = 2, c = 3;
-  a = b < a + c;
+  int x = 0;
+int y = 1;
+int z = x+y;
+
 }

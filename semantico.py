@@ -1,10 +1,6 @@
 #!/usr/bin/env python2.7.12
 #-*- coding: utf-8 -*-
 
-'''
-RVALUECODE do relop e LogicalOp
-
-'''
 import unicodedata
 import re
 from analex import *
@@ -25,8 +21,6 @@ int_type = 0
 float_type = 1
 dicionario = {}
 
-#next: primeira instrucao pos if
-#id, num, label e temp
 
 class Operand():
     def __init__(self):
@@ -51,21 +45,6 @@ class Label(Operand):
         self.name = "L"+str(cont3);
         cont3= cont3+1;
 
-'''
-class Tac():
-    def __init__(self):
-        self.number = None;
-        self.name = None;
-        self.formato = None;
-        #Operand* src1;
-        #Operand* src1;
-        #Label* label;
-        #Label* destLabel;
-
-        #Tac(formato,dest,src1,src2);
-        #Tac(formato,destGoto,src1,src2);
-        #setLabel(label);
-'''
 class AST(object):
     def __init__(self, nome, father):
          self.nome = nome;
@@ -399,9 +378,9 @@ class LogicalOp(BinOp):
             teste = self.children[0].address.name + " " + "!= 0"
             teste1 = self.children[1].address.name + " " + "!= 0"
             temp = Temp()
-            
+
             arq.write("if " + teste + " goto " + self.true_label.name + "\n")
-            
+
             arq.write("if " + teste1 + " goto " + self.true_label.name + "\n")
             arq.write(temp.name+"=0\n"+" goto "+self.next.name+"\n");
             arq.write(self.true_label.name+":"+temp.name+"=1\n");
@@ -414,15 +393,15 @@ class LogicalOp(BinOp):
             teste = self.children[0].address.name + " " + "== 0"
             teste1 = self.children[1].address.name + " " + "== 0"
             temp = Temp()
-            
+
             arq.write("if " + teste + " goto " + self.false_label.name + "\n")
-            
+
             arq.write("if " + teste1 + " goto " + self.false_label.name + "\n")
             arq.write(temp.name+"= 1\n"+" goto "+self.next.name+"\n");
             arq.write(self.false_label.name+":"+temp.name+"=0\n");
             self.address.temporary = temp
             self.address.name = temp.name
-            arq.write(self.next.name+":") 
+            arq.write(self.next.name+":")
 
 class ArithOp(BinOp):
     def __init__(self, left, op, right, father):
@@ -523,8 +502,8 @@ class RelOp(BinOp):
         test = self.children[0].address.name + self.op + self.children[1].address.name;
         arq.write("if " +  test +  " goto " +  self.true_label.name + "\n");
         arq.write("goto " + self.false_label.name + "\n");
-    #nao sabemos se esta certo
-    
+
+
     def generateRValueCode(self):
         self.true_label = Label()
         self.false_label = Label()

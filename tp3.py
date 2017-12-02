@@ -14,4 +14,5 @@ while(len(listaTokens)>0):
 
 	print "Variaveis pos-programa: "
 	print dicionario
+	
 arq.close()
