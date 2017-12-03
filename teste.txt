@@ -1,7 +1,6 @@
 int main()
 {
-  int x = 0;
-int y = 1;
-int z = x+y;
-
+  int a = 1, b = 2, c = 3;
+  if (a + b)
+    a = 1;
 }
